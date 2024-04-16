@@ -50,8 +50,7 @@ export const NORMALIZE_ROYALTIES = process.env.NEXT_PUBLIC_NORMALIZE_ROYALTIES
   ? process.env.NEXT_PUBLIC_NORMALIZE_ROYALTIES === 'true'
   : false
 
-const WALLET_CONNECT_PROJECT_ID =
-  process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || ''
+const WALLET_CONNECT_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 
 const DISABLE_PROXY =
   process.env.NEXT_PUBLIC_DISABLE_PROXY === 'true' ? true : false
@@ -165,6 +164,14 @@ function MyApp({
     } catch (e) {}
   }
 
+  console.log('Supported Chains Configuration:', supportedChains.map(({ reservoirBaseUrl, proxyApi, id }) => ({
+    id,
+    reservoirBaseUrl,
+    proxyApi: proxyApi ? `${baseUrl}${proxyApi}` : null,
+  })));
+
+  console.log('Full API URLs:', supportedChains.map(({ proxyApi }) => `${baseUrl}${proxyApi}`));
+
   return (
     <HotkeysProvider>
       <ThemeProvider
@@ -236,11 +243,7 @@ AppWrapper.getInitialProps = async (appContext: AppContext) => {
   const appProps = await NextApp.getInitialProps(appContext)
   let baseUrl = ''
 
-  if (process.env.NEXT_PUBLIC_PROXY_URL) {
-    baseUrl = process.env.NEXT_PUBLIC_PROXY_URL
-  } else if (process.env.NEXT_PUBLIC_HOST_URL) {
-    baseUrl = process.env.NEXT_PUBLIC_HOST_URL || ''
-  }
+  baseUrl = process.env.NEXT_PUBLIC_RESERVOIR_BASE_URL || ''
   baseUrl = baseUrl.replace(/\/$/, '')
 
   return { ...appProps, baseUrl }

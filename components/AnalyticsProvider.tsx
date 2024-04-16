@@ -22,10 +22,7 @@ export const initializeAnalytics = () => {
         //CONFIGURABLE: Change the service name to customize how it appears in your DD dashboard
         service: 'reservoir-marketplace',
         env,
-        sampleRate: 100,
-        replaySampleRate: 100,
-        trackInteractions: true,
-        trackFrustrations: true,
+        trackUserInteractions: true,
         trackResources: true,
         defaultPrivacyLevel: 'mask-user-input',
       })

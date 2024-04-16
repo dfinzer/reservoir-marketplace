@@ -57,11 +57,15 @@ export const ActivityTable: FC<Props> = ({ data }) => {
   const loadMoreObserver = useIntersectionObserver(loadMoreRef, {})
 
   const activities = data.data
+  console.log('Activities data:', activities);
 
   useEffect(() => {
     const isVisible = !!loadMoreObserver?.isIntersecting
+    console.log('Is load more ref visible:', isVisible);
+    console.log('Current data before fetching next page:', data);
     if (isVisible) {
       data.fetchNextPage()
+      console.log('Data after attempting to fetch next page:', data);
     }
   }, [loadMoreObserver?.isIntersecting])
 
@@ -151,23 +155,22 @@ const ActivityTableRow: FC<ActivityTableRowProps> = ({ activity }) => {
   }
 
   const imageSrc = useMemo(() => {
-    return optimizeImage(
-      activity?.token?.tokenId
-        ? activity?.token?.tokenImage || activity?.collection?.collectionImage
-        : activity?.collection?.collectionImage,
-      250
-    )
+    const baseUrl = process.env.NEXT_PUBLIC_RESERVOIR_BASE_URL || 'https://api.reservoir.tools';
+    const imagePath = activity?.token?.tokenId
+      ? activity?.token?.tokenImage || activity?.collection?.collectionImage
+      : activity?.collection?.collectionImage;
+    return optimizeImage(baseUrl + imagePath, 250);
   }, [
     activity?.token?.tokenId,
     activity?.token?.tokenImage,
     activity?.collection?.collectionImage,
-  ])
+  ]);
 
   let activityDescription = activityTypeToDesciption(activity?.type || '')
   let attributeDescription = ''
 
   /*
-  Ignoring typescript warnings as API types for the 
+  Ignoring typescript warnings as API types for the
   criteria object are incorrectly assigned due to joi.alternatives
   */
   if (activityDescription === 'Offer') {

@@ -6,12 +6,15 @@ const sentryWebpackPluginOptions = {
   project: 'explorer',
   silent: true,
 }
+
 /**
  * @type {import('next').NextConfig}
  */
 const nextConfig = {
   images: {
-    unoptimized: true,
+    unoptimized: false,
+    loader: 'imgix', // use 'imgix' as an example, this should be the service you are using
+    path: 'https://example.com/myaccount/', // replace with your image service's base path
   },
   sentry: {
     hideSourceMaps: false,
