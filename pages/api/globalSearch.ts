@@ -49,43 +49,78 @@ const locallyFilterSpam = (results: any[]) => {
 }
 
 export default async function handler(req: Request) {
+  console.log('Handler function invoked');
+  console.log('Request object:', req);
+
   const { searchParams } = new URL(req.url)
   const query = searchParams.get('query')
   const searchChain = searchParams.get('searchChain')
+  console.log(`Search parameters received - Query: ${query}, SearchChain: ${searchChain}`);
   let searchResults: any[] = []
   let fallbackResults: any[] = []
 
   if (!query) {
-    return
-  }
-
-  if (searchChain) {
-    const chain = supportedChains.find(
-      (chain) => chain.routePrefix === searchChain
-    )
-
-    if (chain) {
-      searchResults = await searchSingleChain(chain, query)
-    }
-  }
-
-  if (!searchResults.length) {
-    fallbackResults = await searchAllChains(query)
-  }
-
-  return new Response(
-    JSON.stringify({
-      results: searchResults,
-      fallbackResults: fallbackResults,
-    }),
-    {
-      status: 200,
+    console.log('No query provided, exiting handler');
+    const response = { error: 'No query provided' };
+    console.log('Response object:', response);
+    return new Response(JSON.stringify(response), {
+      status: 400,
       headers: {
         'content-type': 'application/json',
-        'Cache-Control': 'maxage=0, s-maxage=3600 stale-while-revalidate',
       },
+    });
+  }
+
+  try {
+    if (searchChain) {
+      const chain = supportedChains.find(
+        (chain) => chain.routePrefix === searchChain
+      )
+
+      if (chain) {
+        console.log(`Searching single chain - Chain: ${chain.name}`);
+        searchResults = await searchSingleChain(chain, query)
+      } else {
+        console.log(`Chain not found for searchChain: ${searchChain}`);
+      }
     }
-  )
+
+    if (!searchResults.length) {
+      console.log('No results from single chain search, searching all chains');
+      fallbackResults = await searchAllChains(query)
+    }
+
+    console.log(`Search results - SearchResults: ${JSON.stringify(searchResults)}, FallbackResults: ${JSON.stringify(fallbackResults)}`);
+    const finalResponse = {
+      results: searchResults,
+      fallbackResults: fallbackResults,
+    };
+    console.log('Final response object:', finalResponse);
+    return new Response(
+      JSON.stringify(finalResponse),
+      {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+          'Cache-Control': 'maxage=0, s-maxage=3600 stale-while-revalidate',
+        },
+      }
+    )
+  } catch (error) {
+    console.error('Error caught in handler function:', error);
+    const errorResponse = {
+      error: 'An error occurred during the search.',
+      details: error instanceof Error ? error.message : 'An unknown error occurred',
+      stack: error instanceof Error ? error.stack : 'No stack trace available',
+    };
+    console.error('Error response object:', errorResponse);
+    return new Response(JSON.stringify(errorResponse), {
+      status: 500,
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
+  }
 }
 
 async function searchSingleChain(chain: ReservoirChain, query: string) {
@@ -119,13 +154,13 @@ async function searchSingleChain(chain: ReservoirChain, query: string) {
   let searchResults = []
 
   if (isAddress) {
-    const { data } = await fetcher(
+    const response = await fetcher(
       `${reservoirBaseUrl}/collections/v7?contract=${query}&limit=6`,
       {},
       headers
     )
-    if (data.collections.length > 0) {
-      const processedCollections = data.collections.map(
+    if (response.data && Array.isArray(response.data.collections) && response.data.collections.length > 0) {
+      const processedCollections = response.data.collections.map(
         (collection: Collection) => {
           const processedCollection: SearchCollection = {
             collectionId: collection.id,
@@ -191,8 +226,7 @@ async function searchSingleChain(chain: ReservoirChain, query: string) {
     }
   } else {
     const searchResponse = await promise
-
-    if (searchResponse.data.collections.length > 0) {
+    if (searchResponse.data && Array.isArray(searchResponse.data.collections) && searchResponse.data.collections.length > 0) {
       const processedSearchResults = searchResponse.data.collections.map(
         (collection: SearchCollection) => ({
           type: 'collection',
@@ -344,7 +378,12 @@ async function searchAllChains(query: string) {
     const responses = await Promise.allSettled(promises)
     responses.forEach((response, index) => {
       if (response.status === 'rejected') {
+        console.warn(`Search for chain ${supportedChains[index].name} rejected:`, response.reason);
         return
+      }
+      if (!response.value.data || !Array.isArray(response.value.data.collections)) {
+        console.warn(`Search for chain ${supportedChains[index].name} did not return collections array`);
+        return;
       }
       const chainSearchResults = response.value.data.collections.map(
         (collection: SearchCollection) => ({

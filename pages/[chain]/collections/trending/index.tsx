@@ -162,7 +162,7 @@ export const getServerSideProps: GetServerSideProps<{
   const query = { ...collectionQuery }
 
   const response = await fetcher(
-    `${chain.reservoirBaseUrl}/collections/trending/v1`,
+    `${chain.reservoirBaseUrl}/v1/collections/trending`,
     query,
     {
       headers: {

@@ -202,9 +202,7 @@ function MyApp({
                 return {
                   id,
                   name,
-                  baseApiUrl: proxy
-                    ? `${baseUrl}${proxyApi}`
-                    : reservoirBaseUrl,
+                  baseApiUrl: proxy || reservoirBaseUrl,
                   proxyApi: proxy,
                   active: marketplaceChain.id === id,
                   checkPollingInterval: checkPollingInterval,
@@ -239,14 +237,20 @@ function MyApp({
 }
 
 AppWrapper.getInitialProps = async (appContext: AppContext) => {
-  // calls page's `getInitialProps` and fills `appProps.pageProps`
-  const appProps = await NextApp.getInitialProps(appContext)
-  let baseUrl = ''
+  let appProps;
+  let baseUrl = '';
+  try {
+    // calls page's `getInitialProps` and fills `appProps.pageProps`
+    appProps = await NextApp.getInitialProps(appContext);
+    console.log('AppWrapper.getInitialProps: appProps', appProps);
 
-  baseUrl = process.env.NEXT_PUBLIC_RESERVOIR_BASE_URL || ''
-  baseUrl = baseUrl.replace(/\/$/, '')
+    baseUrl = process.env.NEXT_PUBLIC_RESERVOIR_BASE_URL || 'https://api.reservoir.tools';
+    console.log('AppWrapper.getInitialProps: baseUrl', baseUrl);
+  } catch (error) {
+    console.error('AppWrapper.getInitialProps: error', error);
+  }
 
-  return { ...appProps, baseUrl }
+  return { ...appProps, baseUrl };
 }
 
 export default AppWrapper
