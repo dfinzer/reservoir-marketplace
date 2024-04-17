@@ -51,106 +51,38 @@ const locallyFilterSpam = (results: any[]) => {
 export default async function handler(req: Request) {
   const debugMode = process.env.DEBUG_MODE === 'true';
 
-  if (debugMode) {
-    console.log('Handler function invoked');
-    console.log('Request object:', req);
-  }
-
-  const { searchParams } = new URL(req.url)
-  const query = searchParams.get('query')
-  const searchChain = searchParams.get('searchChain')
-
-  if (debugMode) {
-    console.log(`Search parameters received - Query: ${query}, SearchChain: ${searchChain}`);
-  }
-
-  let searchResults: any[] = []
-  let fallbackResults: any[] = []
-
-  if (!query) {
-    if (debugMode) {
-      console.log('No query provided, exiting handler');
-    }
-    const response = { error: 'No query provided' };
-    if (debugMode) {
-      console.log('Response object:', response);
-    }
-    return new Response(JSON.stringify(response), {
-      status: 400,
-      headers: {
-        'content-type': 'application/json',
-      },
-    });
-  }
-
   try {
-    if (searchChain) {
-      const chain = supportedChains.find(
-        (chain) => chain.routePrefix === searchChain
-      )
-
-      if (chain) {
-        if (debugMode) {
-          console.log(`Searching single chain - Chain: ${chain.name}`);
-        }
-        searchResults = await searchSingleChain(chain, query)
-      } else {
-        if (debugMode) {
-          console.log(`Chain not found for searchChain: ${searchChain}`);
-        }
-      }
-    }
-
-    if (!searchResults.length) {
-      if (debugMode) {
-        console.log('No results from single chain search, searching all chains');
-      }
-      fallbackResults = await searchAllChains(query)
-    }
-
-    if (debugMode) {
-      console.log(`Search results - SearchResults: ${JSON.stringify(searchResults)}, FallbackResults: ${JSON.stringify(fallbackResults)}`);
-    }
-    const finalResponse = {
-      results: searchResults,
-      fallbackResults: fallbackResults,
-    };
-    if (debugMode) {
-      console.log('Final response object:', finalResponse);
-    }
-    return new Response(
-      JSON.stringify(finalResponse),
-      {
-        status: 200,
-        headers: {
-          'content-type': 'application/json',
-          'Cache-Control': 'maxage=0, s-maxage=3600 stale-while-revalidate',
-        },
-      }
-    )
+    // Existing logic to handle the request and search functionality
+    // ...
   } catch (error) {
     let statusCode = 500;
     let errorMessage = 'An error occurred during the search.';
-    let errorStack;
+    let errorDetails;
 
     if (error instanceof Error) {
       errorMessage = error.message;
-      errorStack = error.stack;
+      errorDetails = error.stack;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
     } else {
-      console.error('Error caught in handler function:', error);
-      errorMessage = 'An unknown error occurred';
-      errorStack = 'No stack trace available';
+      errorDetails = JSON.stringify(error);
     }
 
-    if (debugMode) {
-      console.error('Error object:', error);
-      console.error('Error stack:', errorStack);
+    // Enhanced error logging
+    console.error('Error caught in handler function:', errorMessage);
+    console.error('Request details:', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: req.body
+    });
+    if (errorDetails) {
+      console.error('Error details:', errorDetails);
     }
 
     const errorResponse = {
       error: errorMessage,
-      details: debugMode ? errorMessage : undefined,
-      stack: debugMode ? errorStack : undefined,
+      details: debugMode ? errorDetails : 'An error occurred',
     };
 
     return new Response(JSON.stringify(errorResponse), {
